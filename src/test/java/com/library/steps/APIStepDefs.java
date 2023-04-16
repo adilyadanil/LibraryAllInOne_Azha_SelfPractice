@@ -1,5 +1,6 @@
 package com.library.steps;
 
+import com.github.javafaker.Faker;
 import com.library.utility.ConfigurationReader;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -13,9 +14,13 @@ import io.restassured.specification.RequestSpecification;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.library.utility.LibraryAPI_Util.getToken;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class APIStepDefs {
     String token;
@@ -24,6 +29,10 @@ public class APIStepDefs {
     RequestSpecification requestSpecification;
     ValidatableResponse validatableResponse;
     Response response;
+    JsonPath jp;
+    Faker faker;
+
+    String createdBookIDtoDelete;
 
     @Given("I logged Library api as a {string}")
     public void i_logged_library_api_as_a(String userType) {
@@ -73,11 +82,71 @@ public class APIStepDefs {
     @Then("following fields should not be null")
     public void following_fields_should_not_be_null(List<String> fieldNames) {
 
-        JsonPath jp = response.jsonPath();
+        jp = response.jsonPath();
 
         for (int i=0; i<fieldNames.size(); i++) {
-            Assert.assertNotNull(jp.getString(fieldNames.get(i)));
+            assertNotNull(jp.getString(fieldNames.get(i)));
         }
+    }
+
+    @Then("{string} field should not be null")
+    public void field_should_not_be_null(String fieldName) {
+        jp = response.jsonPath();
+
+        assertNotNull(jp.getString(fieldName));
+    }
+
+    @Given("Request Content Type header is {string}")
+    public void request_content_type_header_is(String headerValue) {
+
+        requestSpecification = requestSpecification.header("Content-Type", headerValue);
+
+    }
+    @Given("I create a random {string} as request body")
+    public void i_create_a_random_as_request_body(String randomRequestBody) {
+
+        faker = new Faker();
+
+        if (randomRequestBody.equals("book")) {
+
+            Map<String,String> bookBodyMap = new LinkedHashMap<>();
+            bookBodyMap.put("id", "" +faker.numerify("4####"));
+            bookBodyMap.put("name", faker.book().title());
+            bookBodyMap.put("isbn", "" + faker.numerify("6###########"));
+            bookBodyMap.put("year", "" + faker.numerify("19##"));
+            bookBodyMap.put("author", faker.name().fullName());
+            bookBodyMap.put("book_category_id", "5");
+            bookBodyMap.put("description", faker.howIMetYourMother().catchPhrase());
+            bookBodyMap.put("added_date", "2022-07-06 00:00:00");
+
+        requestSpecification = requestSpecification.formParams(bookBodyMap);
+
+
+
+        } else if (randomRequestBody.equals("user")) {
+
+
+
+        }else{
+            throw new RuntimeException("Wow wow slow down bully, you broke something.");
+        }
+
+
+    }
+    @When("I send POST request to {string} endpoint")
+    public void i_send_post_request_to_endpoint(String endpoint) {
+
+        response = requestSpecification.post(baseURI + endpoint);
+
+    }
+    @Then("the field value for {string} path should be equal to {string}")
+    public void the_field_value_for_path_should_be_equal_to(String fieldKey, String expectedMessage) {
+
+        jp = response.jsonPath();
+
+       String actualMessage = jp.getString(fieldKey);
+
+        assertEquals(expectedMessage,actualMessage);
 
     }
 
