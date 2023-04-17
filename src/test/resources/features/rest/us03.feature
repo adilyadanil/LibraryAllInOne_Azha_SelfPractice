@@ -1,4 +1,4 @@
-@serhanWip
+@smoke @regression
 Feature: As a librarian, I want to create a new book
 
   Scenario: Create a new book API

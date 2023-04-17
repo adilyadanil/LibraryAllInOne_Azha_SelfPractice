@@ -6,6 +6,7 @@ import com.library.pages.LoginPage;
 import com.library.utility.BrowserUtil;
 import com.library.utility.ConfigurationReader;
 import com.library.utility.Driver;
+import org.junit.Before;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -46,13 +47,11 @@ public class APIStepDefs {
     String createdBookTitle;
     String createdBookID;
     BookPage bookPage;
-
-    String createdUserID;
     String createdUserPassword;
     Map<String, String> userBodyMap;
     String createdUserEmail;
-
     String newToken;
+
 
     @Given("I logged Library api as a {string}")
     public void i_logged_library_api_as_a(String userType) {
@@ -64,7 +63,10 @@ public class APIStepDefs {
     @Given("Accept header is {string}")
     public void accept_header_is(String contentType) {
 
-        requestSpecification = requestSpecification.given().accept(contentType);
+        if (requestSpecification == null) {
+            requestSpecification = given();
+        }
+        requestSpecification = requestSpecification.accept(contentType);
     }
 
     @When("I send GET request to {string} endpoint")
@@ -321,7 +323,7 @@ public class APIStepDefs {
         Map<String,String> tokenMap = new HashMap<>();
         tokenMap.put("token",newToken);
 
-        requestSpecification = given().formParams(tokenMap);
+        requestSpecification = given().formParam("token", newToken);
 
     }
 
