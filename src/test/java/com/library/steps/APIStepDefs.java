@@ -47,7 +47,7 @@ public class APIStepDefs {
     String createdBookTitle;
     String createdBookID;
     BookPage bookPage;
-    String createdUserPassword;
+    String encryptedPassword;
     Map<String, String> userBodyMap;
     String createdUserEmail;
     String newToken;
@@ -158,7 +158,7 @@ public class APIStepDefs {
             userBodyMap = new LinkedHashMap<>();
             userBodyMap.put("full_name", faker.name().fullName());
             userBodyMap.put("email", createdUserEmail);
-            userBodyMap.put("password","dextermembo");
+            userBodyMap.put("password", faker.address().cityName());
             userBodyMap.put("user_group_id", "" + 2);
             userBodyMap.put("start_date", "2022-03-11");
             userBodyMap.put("end_date", "2023-03-11");
@@ -170,7 +170,6 @@ public class APIStepDefs {
             throw new RuntimeException("Wow wow slow down bully, you broke something. Slow down ");
         }
     }
-
 
     @When("I send POST request to {string} endpoint")
     public void i_send_post_request_to_endpoint(String endpoint) {
@@ -252,33 +251,23 @@ public class APIStepDefs {
         runQuery("select full_name, email, password, user_group_id, start_date,end_date,address\n" +
                 "from users where full_name = '" + userBodyMap.get("full_name") + "'");
 
-         createdUserPassword = getCellValue(1, "password");
+         encryptedPassword = getCellValue(1, "password");
 
         Map<String, String> dbInformation = new LinkedHashMap<>();
         dbInformation.put("full_name", getCellValue(1, "full_name"));
         dbInformation.put("email", getCellValue(1, "email"));
-        dbInformation.put("password",getCellValue(1,"password"));
+        dbInformation.put("password", userBodyMap.get("password"));
         dbInformation.put("user_group_id", getCellValue(1, "user_group_id"));
         dbInformation.put("start_date", getCellValue(1, "start_date"));
         dbInformation.put("end_date", getCellValue(1, "end_date"));
         dbInformation.put("address", getCellValue(1, "address"));
 
-
-        System.out.println("dbInformation = " + dbInformation);
-        System.out.println("userBodyMap = " + userBodyMap);  //===> Proof of bug!
-
-        /*
         assertEquals(dbInformation,userBodyMap);
-         */
 
     }
 
     @Then("created user should be able to login Library UI")
     public void created_user_should_be_able_to_login_library_ui() {
-
-        System.out.println("createdUserPassword = " + createdUserPassword); // BUG !!
-
-
 
         LoginPage loginPage = new LoginPage();
 
@@ -326,7 +315,5 @@ public class APIStepDefs {
         requestSpecification = given().formParam("token", newToken);
 
     }
-
-
 
 }
