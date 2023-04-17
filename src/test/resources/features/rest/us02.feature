@@ -1,4 +1,4 @@
-@smoke
+@smoke @regression
 Feature: As a user, I want to search for a specific user by their id
         so that I can quickly find the information I need.
 
