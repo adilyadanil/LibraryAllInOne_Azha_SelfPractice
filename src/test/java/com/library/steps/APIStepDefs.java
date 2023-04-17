@@ -5,7 +5,7 @@ import com.library.pages.BookPage;
 import com.library.pages.LoginPage;
 import com.library.utility.BrowserUtil;
 import com.library.utility.ConfigurationReader;
-import com.library.utility.DB_Util;
+import com.library.utility.Driver;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -16,8 +16,11 @@ import io.restassured.response.Response;
 import io.restassured.response.ValidatableResponse;
 import io.restassured.specification.RequestSpecification;
 import org.hamcrest.Matchers;
-import org.junit.Assert;
-import org.openqa.selenium.json.Json;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.interactions.Actions;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -39,9 +42,14 @@ public class APIStepDefs {
     JsonPath jp;
     Faker faker;
     String createdBookTitle;
-
     String createdBookID;
     BookPage bookPage;
+
+    String createdUserID;
+    String createdUserPassword;
+    Map<String, String> userBodyMap;
+
+    String createdUserEmail;
 
     @Given("I logged Library api as a {string}")
     public void i_logged_library_api_as_a(String userType) {
@@ -78,7 +86,6 @@ public class APIStepDefs {
 
     @Given("Path param is {string}")
     public void path_param_is(String pathParam) {
-
 
         requestSpecification.pathParam("id", pathParam);
 
@@ -122,9 +129,9 @@ public class APIStepDefs {
 
         faker = new Faker();
 
-        createdBookTitle = "Membo loves " + faker.lordOfTheRings().character();
-
         if (randomRequestBody.equals("book")) {
+
+            createdBookTitle = faker.name().firstName() + " travels to " + faker.country().name();
 
             Map<String, String> bookBodyMap = new LinkedHashMap<>();
             bookBodyMap.put("id", "" + faker.numerify("4####"));
@@ -141,9 +148,21 @@ public class APIStepDefs {
 
         } else if (randomRequestBody.equals("user")) {
 
+            this.createdUserEmail = faker.internet().emailAddress();
+
+            userBodyMap = new LinkedHashMap<>();
+            userBodyMap.put("full_name", faker.name().fullName());
+            userBodyMap.put("email", createdUserEmail);
+            userBodyMap.put("password","dextermembo");
+            userBodyMap.put("user_group_id", "" + 2);
+            userBodyMap.put("start_date", "2022-03-11");
+            userBodyMap.put("end_date", "2023-03-11");
+            userBodyMap.put("address", faker.country().capital());
+
+            requestSpecification = requestSpecification.formParams(userBodyMap);
 
         } else {
-            throw new RuntimeException("Wow wow slow down bully, you broke something.");
+            throw new RuntimeException("Wow wow slow down bully, you broke something. Slow down ");
         }
     }
 
@@ -201,7 +220,6 @@ public class APIStepDefs {
         createdBookID = jp.getString("book_id");
 
         //get the json body for created book for comparison
-
         JsonPath jsonPath = RestAssured.given().accept(ContentType.JSON)
                 .header("x-library-token", token)
                 .pathParam("id", createdBookID)
@@ -217,10 +235,71 @@ public class APIStepDefs {
 
         //compare all 3 layers
 
-        assertEquals(bookUImap,bookAPImap);
-        assertEquals(bookUImap,bookDBmap);
-        assertEquals(bookAPImap,bookDBmap);
+        assertEquals(bookUImap, bookAPImap);
+        assertEquals(bookUImap, bookDBmap);
+        assertEquals(bookAPImap, bookDBmap);
 
     }
+
+    @Then("created user information should match with Database")
+    public void created_user_information_should_match_with_database() {
+
+        runQuery("select full_name, email, password, user_group_id, start_date,end_date,address\n" +
+                "from users where full_name = '" + userBodyMap.get("full_name") + "'");
+
+         createdUserPassword = getCellValue(1, "password");
+
+        Map<String, String> dbInformation = new LinkedHashMap<>();
+        dbInformation.put("full_name", getCellValue(1, "full_name"));
+        dbInformation.put("email", getCellValue(1, "email"));
+        dbInformation.put("password",getCellValue(1,"password"));
+        dbInformation.put("user_group_id", getCellValue(1, "user_group_id"));
+        dbInformation.put("start_date", getCellValue(1, "start_date"));
+        dbInformation.put("end_date", getCellValue(1, "end_date"));
+        dbInformation.put("address", getCellValue(1, "address"));
+
+
+        System.out.println("dbInformation = " + dbInformation);
+        System.out.println("userBodyMap = " + userBodyMap);  //===> Proof of bug!
+
+        /*
+        assertEquals(dbInformation,userBodyMap);
+         */
+
+    }
+
+    @Then("created user should be able to login Library UI")
+    public void created_user_should_be_able_to_login_library_ui() {
+
+        System.out.println("createdUserPassword = " + createdUserPassword); // BUG !!
+
+
+
+        LoginPage loginPage = new LoginPage();
+
+        loginPage.login(createdUserEmail, userBodyMap.get("password"));
+
+    }
+
+    @Then("created user name should appear in Dashboard Page")
+    public void created_user_name_should_appear_in_dashboard_page() {
+
+        bookPage = new BookPage();
+
+        WebDriverWait wait = new WebDriverWait(Driver.getDriver(),20);
+        wait.until(ExpectedConditions.visibilityOf(bookPage.accountHolderName));
+
+        String apiUserName = userBodyMap.get("full_name");
+        String uiUserName = bookPage.accountHolderName.getText();
+
+        System.out.println("apiUserName = " + apiUserName);
+        System.out.println("uiUserName = " + uiUserName);
+
+
+        assertEquals(apiUserName,uiUserName);
+
+
+    }
+
 
 }

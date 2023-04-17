@@ -3,6 +3,7 @@ package com.library.steps;
 
 
 
+import com.library.utility.BrowserUtil;
 import com.library.utility.ConfigurationReader;
 import com.library.utility.DB_Util;
 import com.library.utility.Driver;
@@ -30,6 +31,7 @@ public class Hooks {
             final byte[] screenshot = ((TakesScreenshot) Driver.getDriver()).getScreenshotAs(OutputType.BYTES);
             scenario.attach(screenshot,"image/png","screenshot");
         }
+
 
         Driver.closeDriver();
 
