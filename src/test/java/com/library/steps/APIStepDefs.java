@@ -22,6 +22,7 @@ import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,7 @@ import java.util.Map;
 import static com.library.utility.DB_Util.getCellValue;
 import static com.library.utility.DB_Util.runQuery;
 import static com.library.utility.LibraryAPI_Util.getToken;
+import static io.restassured.RestAssured.given;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -48,14 +50,15 @@ public class APIStepDefs {
     String createdUserID;
     String createdUserPassword;
     Map<String, String> userBodyMap;
-
     String createdUserEmail;
+
+    String newToken;
 
     @Given("I logged Library api as a {string}")
     public void i_logged_library_api_as_a(String userType) {
         token = getToken(userType);
 
-        requestSpecification = RestAssured.given().header("x-library-token", token);
+        requestSpecification = given().header("x-library-token", token);
     }
 
     @Given("Accept header is {string}")
@@ -220,7 +223,7 @@ public class APIStepDefs {
         createdBookID = jp.getString("book_id");
 
         //get the json body for created book for comparison
-        JsonPath jsonPath = RestAssured.given().accept(ContentType.JSON)
+        JsonPath jsonPath = given().accept(ContentType.JSON)
                 .header("x-library-token", token)
                 .pathParam("id", createdBookID)
                 .when().get(baseURI + "/get_book_by_id/{id}")
@@ -297,9 +300,31 @@ public class APIStepDefs {
 
 
         assertEquals(apiUserName,uiUserName);
+    }
 
+    @Given("I logged Library api with credentials {string} and {string}")
+    public void i_logged_library_api_with_credentials_and(String email, String password) {
+
+        Map<String,String> credentials = new LinkedHashMap<>();
+        credentials.put("email", email);
+        credentials.put("password", password);
+
+        given().accept(ContentType.URLENC)
+                .formParams(credentials);
+
+        newToken = getToken(email, password);
 
     }
+    @Given("I send token information as request body")
+    public void i_send_token_information_as_request_body() {
+
+        Map<String,String> tokenMap = new HashMap<>();
+        tokenMap.put("token",newToken);
+
+        requestSpecification = given().formParams(tokenMap);
+
+    }
+
 
 
 }
